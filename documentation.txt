@@ -1,0 +1,217 @@
+HSLICE involves data format and a reference library for data analysis of this format. The reference implementation of the library is referred to as libhslice.
+
+ ########################################
+ #          FORMAT DESCRIPTION          #
+ ########################################
+
+1) Purpose
+
+	HSLICE format is created to divide text data into parts. For example, to obtain the desired template lines of web pages in html, which can subsequently be used for dynamically generation of other pages.
+
+2) Format
+
+The format involves placing dividers (delimiters) between the desired areas of the text. The divider has the form:
+
+        PREFIXTAGSUFFIX
+
+    The prefix and suffix are needed in order to select the tag among the remaining mass of text, and not to create collisions.
+
+    For example:
+
+        {COOLPREFIX_MYTAG}
+
+    here we have:
+
+        1) Prefix:    {COOLPREFIX_
+        2) Tag:        MYTAG
+        3) Suffix:    }
+
+    Dividers give the possibility to access to the text that is before the divider.
+
+3) Special cases
+
+    - If another divider or missing text is before the divider, we get a blank line.
+
+	- NULL tag has a special significance. It is necessary to indicate the area that should be ignored.
+
+	For example:
+
+		Get the roll{Z_ROLL} of the {Z_NULL}troll{Z_TROLL}
+
+	In this example, when referring to ROLL, we obtain the line "Get the roll", and when referring to TROLL, we obtain "troll". The text " of the " doesn’t need to go into the memory after work of the library. libhslice doesn’t put the text into the memory.
+
+	- Special tag pairs SKIP - NOSKIP. They operate as NULL, but following the NOSKIP tag captures the text that is before SKIP.
+
+	For example:
+
+		Get{Z_GET} the roll {Z_SKIP}of {Z_NOSKIP}the troll{Z_MAINSTRING}
+
+	MAINSTRING in this case returns "the roll the troll".
+
+
+ ##########################################################
+ #     HSLICE STANDARD DESCRIPTION IN PSEUDOLANGUAGE      #
+ ##########################################################
+
+1) File opening and preparation for reading data.
+
+	hslice_obj hslice_open(filename);
+
+	The function uses the filename file as a source for data. It returns an object of hslice_obj type, which is an argument for other functions. If a different data source is needed, a null value can be passed and the function will create an empty object, editable by the developer.
+
+2) Finishing work with data
+
+	void hslice_close(obj);
+
+	The procedure finishes the work with an object obj, subsequently we can destroy this object.
+
+3) Data processing
+
+	sorted_list hslice_parse(obj, prefix, suffix);
+
+	The function processes the data from the object obj, getting associative array sorted_list from lines. When processing, lines prefix and suffix are accounted, which are the prefix and suffix respectively.
+
+4) Counting obtained data
+
+	int hslice_count(obj);
+
+	The function returns the number of lines after data processing. It also can return negative value, which means that hslice_parse() fails.
+
+5) List of tags
+
+	list hslice_tags(obj);
+
+	The function returns the list of lines with determined tags.
+
+ ################################################################
+ #   API libhslice DESCRIPTION IN THE PROGRAMMING LANGUAGE C    #
+ ################################################################
+
+1) File opening and preparation for data reading.
+
+	hslice_obj hslice_open(const char *filename);
+
+	The function opens the file filename, puts its contents into the memory, and then closes the file. It returns hslice_obj structure type, which is an argument for the other library functions. If the value of the filename is equal to NULL, an empty structure returns.
+
+2) Finishing work with data
+
+	void hslice_close(hslice_obj *obj);
+
+	The procedure frees the memory, allocated for the data, which is referred by the obj structure, and cleans it's fields. It is impossible to work with obj using the library functions after usage of this function.
+
+3) Data processing
+
+	void hslice_parse(hslice_obj *obj, char *prefix, char *suffix);
+
+	The function processes the data from hslice_obj to a list of strings, and then sorts it for faster access.
+
+4) Counting data obtained
+
+	int hslice_count(hslice_obj *obj);
+
+	The function returns the number of lines after parse_hslice processing. If the processing hasn’t been made yet or processing attempt has failed (no access to the file, it is impossible to allocate the memory), -1 returns.
+
+5) Selecting data
+
+	char *hslice_return(hslice_obj *obj, char *search);
+
+	The function searches in the list, obtained after obj processing, the line with search tag and returns it. If there are no search results, NULL returns.
+
+	Note: This function exists in a reference library for the reason that there are no associative arrays in the C programming language.
+
+6) Stringsafe collection
+
+	char *hslice_return_e(hslice_obj *obj, char *search);
+
+	Similarly with hslice_return, but in the absence of the search results, it returns an empty line.
+
+7) List of tags
+
+	char **hslice_tags(hslice_onj *obj);
+
+	The function returns a pointer to an array of pointers, each element refers to all found unique tags after hslice_parse() performing. The last element of the array always points to NULL.
+
+
+ ########################################
+ #         Examples of using            #
+ ########################################
+
+1) Example of format using in html template
+
+		<html>
+			<head>
+				<title>{PAGE_HEADER1}
+				SOMETITILE{PAGE_NULL}
+				</title>
+			</head>{PAGE_HEADER2}
+			<body>
+				{PAGE_SKIP}FISHYTEXT and image <img src="troll.jpg">{PAGE_NOSKIP}
+				<table>{PAGE_HEADER}
+				    <tr class="line">{PAGE_TABLELINE}
+				        <td class="cell1">{PAGE_CELL1}HUEHUEHUE{PAGE_NULL}</td>
+				        <td class="cell2">{PAGE_CELL2}213123123123{PAGE_NULL}</td>
+				    </tr>{PAGE_TABLELINE2}
+				</table>
+				<div class="footer">aaaa</div>
+			</body>
+		</html>{PAGE_ENDING}
+
+2) Receiving data
+
+	Imagine that we have a file with the name lorem.txt and such content:
+
+	Lorem ipsum dolor sit amet, consectetur adipiscing elit.{Z_O} {Z_NULL}Nunc egestas est id lacus viverra, et pharetra nulla sollicitudin.{Z_V} Vivamus ullamcorper orci est, et cursus nisl pretium nec. Donec pharetra, ipsum at commodo egestas, nibh tortor mollis sapien, eu mattis augue massa nec mi. Curabitur volutpat.
+
+	The program to receive data on O and V tags:
+
+		#include <stdio.h>
+		#include "libhslice.h"
+
+		int main(int argc, char **argv) {
+			hslice_obj a = hslice_open("lorem.txt");;
+			hslice_parse(a, "{Z_", "}");
+			printf("%s %s", hslice_return(a, "O"), hslice_return(a, "V"));
+			return 0;
+		}
+
+3) All data obtaining with a checking for unexpected behavior
+
+	Tags are similar to the previous example.
+
+		#include <stdio.h>
+		#include <stdlib.h>
+		#include "libhslice.h"
+
+		int main(int argc, char **argv) {
+			hslice_obj a;
+			int count;
+
+			if (argc > 2) a = hslice_open(argv[1]);
+			if (hslice_count(a) < 0) return EXIT_FAILURE;
+			hslice_parse(a);
+			count = hslice_count(a, "");
+			if (count == 0) {
+				fprintf(stderr, "No data recieved\n");
+				return EXIT_SUCCESS;
+			}
+			size_t i = 0;
+			while (i < count) {
+				printf("%s %s\n", hslice_tags(a)[i], hslice_return(a, hslice_tags(a)[i]));
+				i++;
+			}
+			return EXIT_SUCCESS;
+		}
+
+ ########################################################
+ #        Undefined behavior, restrictions, etc         #
+ ########################################################
+
+Standard:
+
+	1) The standard is needed in order to determine the minimum compatible functionality.
+	2) Everything that is not defined by the standard is allowed.
+
+Reference implementation:
+
+	1) The reference implementation is designed to correctly perform the task, to process the HSLICE format in the list of lines and to give the ability to produce a collection of these lines. Performance, memory consumption, and other optimizations are not goals of the reference implementation.
+	2) The reference implementation can be safely used in situations where a relatively large spent memory and time is valid for data preparation and collection. In cases where an access to the desired storage is needed to faster, collection results should be stored in the pointer and then to use it.
