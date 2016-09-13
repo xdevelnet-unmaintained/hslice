@@ -29,6 +29,7 @@ typedef struct {
 	tag_and_data *table;
 	size_t tablesize;
 	ssize_t parsed_strings;
+	char **tags;
 } hslice_obj;
 
 typedef struct {
@@ -42,6 +43,7 @@ typedef struct {
 static void erase_hslice_obj_ptrs(hslice_obj *obj) { // because we'll perform free() at hslice_close(); Using free(NULL) is safe.
 	obj->filemem = NULL;
 	obj->table = NULL;
+	obj->tags = NULL;
 }
 
 const char empty_string[] = "";
@@ -50,7 +52,7 @@ hslice_obj hslice_open(char *filename) {
 	hslice_obj obj;
 	if (filename == NULL) {
 		fprintf(stderr, "%s\n", "No filename specified.");
-		obj.parsed_strings = -1;
+		obj = (const hslice_obj) {0}; // compound literal! C99!
 		return obj;
 	}
 	FILE *file = fopen(filename, "rb");
@@ -200,10 +202,6 @@ bool parse(hslice_obj *obj, parser_internal *parser_req) { // parse it, goddamni
 		*flying_suffix_after_tag = '\0';
 		flying_ptr = flying_suffix_after_tag + 1;
 		if (add_to_table(obj, tag_ptr, data_ptr) == false) return false;
-		if (obj->parsed_strings == -1) {
-			fprintf(stderr, "%s\n", "Memory allocation failed.");
-			return false;
-		}
 	}
 	return true;
 };
@@ -212,12 +210,34 @@ static int comparator(const void *p1, const void *p2) { // proudly copypasted, b
 	return strcasecmp(((tag_and_data *) p1)->tag.ptr, ((tag_and_data *) p2)->tag.ptr);
 }
 
+bool prepare_tags(hslice_obj *obj) {
+	static char *nothing = NULL;
+	if (obj->parsed_strings  == 0) {
+		obj->tags = &nothing;
+		return true;
+	}
+	obj->tags = calloc((size_t ) obj->parsed_strings + 1, sizeof(void *));
+	if (obj->tags == NULL) {
+		fprintf(stderr, "%s\n", "Failed to allocate memory for tag list.");
+		obj->parsed_strings = -1;
+		return false;
+	}
+	obj->tags[obj->parsed_strings] = NULL; // NULL for last element
+	ssize_t i = 0; // I don't want to typecast something below
+	while (i < obj->parsed_strings) {
+		obj->tags[i] = obj->table[i].tag.ptr;
+		i++;
+	}
+	return true;
+}
+
 void hslice_parse(hslice_obj *obj, const char *prefix, const char *suffix) {
 	parser_internal parser_req = {.prefix = prefix, .suffix = suffix};
 	if (parser_preparations(obj, &parser_req) == false) return; // goto Error not needed, because parser_req.prefix_and_suffix should not be free()'d
 	if (parse(obj, &parser_req) == false) goto Error;
 	obj->filemem = realloc(obj->filemem, obj->fmemsize); // Memory usage has been reduced because of memmove()'s. So, I suppose we should not care about return value too much
 	modify_seeks_to_pointers(obj);
+	prepare_tags(obj);
 	qsort(obj->table, (size_t) obj->parsed_strings, sizeof(tag_and_data), comparator);
 	Error:
 	free(parser_req.prefix_and_suffix); // prefix and suffix aren't needed anymore
@@ -250,7 +270,7 @@ const char *hslice_return_e(hslice_obj *obj, char *search) {
 }
 
 void hslice_close(hslice_obj *obj) {
-	free(obj->filemem), free(obj->table); // AHAHAHAH, DID YOU GET IT?!
+	free(obj->filemem), free(obj->table), free(obj->tags); // AHAHAHAH, DID YOU GET IT?!
 }
 
 #endif

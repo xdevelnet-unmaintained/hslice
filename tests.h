@@ -122,6 +122,35 @@ bool hslice_parse_moved_mem_test() {
 	return test_result;
 }
 
+static bool check_string_existance(char **list, size_t count, char *string) {
+	size_t i = 0;
+	while (i < count) {
+		if (strcmp(list[i], string) == 0) return true;
+		i++;
+	}
+	return false;
+}
+
+bool hslice_tags_test() {
+	const char testdata[] = "Every cloud beyond the sky(A_bfg)"
+			"Every place that I hide(A_lf)"
+			"Tell me that I, I was wrong to let u go(A_lmnt)"
+			"Every sound that I hear(A_nnn)"
+			"Every force that I feel(A_AoE)"
+			"Tell me that I, I was wrong, I was wrong to let u go(A_qwerty)";
+	hslice_obj test_object = {.filemem = strdup(testdata), .fmemsize = sizeof(testdata)};
+	hslice_parse(&test_object, "(A_", ")");
+	bool retval = false;
+	if (check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "bfg") == true and
+		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "lf") == true and
+		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "lmnt") == true and
+		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "nnn") == true and
+		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "AoE") == true) retval = true;
+	hslice_close(&test_object);
+
+	return retval;
+}
+
 bool hslice_parse_sorted_test() { // Tags should exist and be sorted alphabetically
 	const char testdata[] = "What is love{p_love}\nBaby don't hurt me{p_baby}\nDon't hurt me{p_Hurt}\nNo more{p_more}\n";
 	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
@@ -192,6 +221,7 @@ void run_tests() {
 		if (!perform_test("add_to_table", add_to_table_test)) break;
 		if (!perform_test("hslice_parse (moved mem)", hslice_parse_moved_mem_test)) break;
 		if (!perform_test("hslice_parse (sorted tags)", hslice_parse_sorted_test)) break;
+		if (!perform_test("hslice_tags_test", hslice_tags_test)) break;
 		if (!perform_test("hslice_return", hslice_return_test)) break;
 	} while (0);
 	if (perform_test(NULL, NULL) == true) exit(EXIT_SUCCESS); // get last test result
