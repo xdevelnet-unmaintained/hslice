@@ -170,12 +170,14 @@ bool hslice_return_test() {
 }
 
 bool perform_test(char *test_name, bool(testfunc)()) {
+	static bool test_result = false;
+	if (test_name == NULL) return test_result;
 	static size_t test_number = 0;
 	printf("Test #%lu: %s - ", ++test_number, test_name);
 	fflush(stdout);
-	const char *test_result_str = "Passed.";
-	bool test_result = testfunc();
-	if (test_result == 0) test_result_str = "NOT passed. Stopped.";
+	static const char *test_result_str = "Passed.";
+	test_result = testfunc();
+	if (test_result == false) test_result_str = "NOT passed. Stopped.";
 	printf("%s\n", test_result_str);
 	return test_result;
 }
@@ -192,7 +194,8 @@ void run_tests() {
 		if (!perform_test("hslice_parse (sorted tags)", hslice_parse_sorted_test)) break;
 		if (!perform_test("hslice_return", hslice_return_test)) break;
 	} while (0);
-	exit(EXIT_SUCCESS);
+	if (perform_test(NULL, NULL) == true) exit(EXIT_SUCCESS); // get last test result
+	exit(EXIT_FAILURE);
 }
 
 #endif
