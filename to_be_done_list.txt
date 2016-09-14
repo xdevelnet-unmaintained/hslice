@@ -1,0 +1,23 @@
+I. More tests:
+
+1) Module-independent tests
+2) Test-scenario descriptions
+3) Undefined behavior tests
+4) Separated valgrind checking with TRAVIS-CI
+5) Test order should be correct
+
+II. Functional
+
+1) Library real functional should correspond declared functional in documentation
+2) Shared object compiling options
+3) Shared object interface options
+4) Add examples
+5) Implement length feature
+
+III. Important, but not technical
+
+1) Update README.md with detailed description
+2) Update documentation examples. They are probably UNCORRECT
+3) Test it in real... and cruel world. Probably with FASTCGI application
+4) Tell about this library to someone
+5( Feel shame
