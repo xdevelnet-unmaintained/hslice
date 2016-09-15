@@ -237,7 +237,7 @@ void hslice_parse(hslice_obj *obj, const char *prefix, const char *suffix) {
 	if (parse(obj, &parser_req) == false) goto Error;
 	obj->filemem = realloc(obj->filemem, obj->fmemsize); // Memory usage has been reduced because of memmove()'s. So, I suppose we should not care about return value too much
 	modify_seeks_to_pointers(obj);
-	prepare_tags(obj);
+	if (prepare_tags(obj) == false) goto Error; // FALLUS IN FRONTALUS — MORTE MOMENTALUS
 	qsort(obj->table, (size_t) obj->parsed_strings, sizeof(tag_and_data), comparator);
 	Error:
 	free(parser_req.prefix_and_suffix); // prefix and suffix aren't needed anymore
