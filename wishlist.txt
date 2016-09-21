@@ -1,10 +1,10 @@
 I. More tests:
 
-1) Module-independent tests
-2) Test-scenario descriptions
+1) Module-independent tests -- already done?
+2) Test-scenario descriptions -- not always needed. When scenario is not obvios, commend already present
 3) Undefined behavior tests
 4) Separated valgrind checking with TRAVIS-CI
-5) Test order should be correct
+5) Test order should be correct -- already done?
 
 II. Functional
 
