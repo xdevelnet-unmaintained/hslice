@@ -4,4 +4,4 @@ dist: trusty
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y valgrind
-script: make && valgrind ./hslice_tests
+script: make && valgrind --error-exitcode=139 ./hslice_tests

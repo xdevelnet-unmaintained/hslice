@@ -3,7 +3,7 @@ I. More tests:
 1) Module-independent tests -- already done?
 2) Test-scenario descriptions -- not always needed. When scenario is not obvios, commend already present
 3) Undefined behavior tests
-4) Separated valgrind checking with TRAVIS-CI
+4) Separated valgrind checking with TRAVIS-CI -- done. Why I need to do that separately?
 5) Test order should be correct -- already done?
 
 II. Functional
