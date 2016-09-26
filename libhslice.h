@@ -18,7 +18,7 @@ typedef union { // because we gonna store array of offsets (seeks?), then transf
 } ptr_and_seek;
 
 typedef struct {
-	size_t number;
+	size_t length;
 	ptr_and_seek tag;
 	ptr_and_seek data;
 } tag_and_data;
@@ -48,11 +48,11 @@ static void erase_hslice_obj_ptrs(hslice_obj *obj) { // because we'll perform fr
 
 const char empty_string[] = "";
 
-hslice_obj hslice_open(char *filename) {
+hslice_obj hslice_open(char *filename) { // TODO: Rewrite it using only POSIX library instead of regular C file handling. This library is not designed to run under WIN
 	hslice_obj obj;
 	if (filename == NULL) {
 		fprintf(stderr, "%s\n", "No filename specified.");
-		obj = (const hslice_obj) {0}; // compound literal! C99!
+		obj = (const hslice_obj) {0}; // compound literal! C99 power IN ACTION!
 		return obj;
 	}
 	FILE *file = fopen(filename, "rb");
@@ -104,7 +104,7 @@ char *ftag(char *ptr, const char *suffix, size_t suffixlen) { // we gonna check 
 bool add_to_table(hslice_obj *obj, char *tag, char *data) { // Do I really need to write test for this procedure?
 	obj->table[obj->parsed_strings].tag.seek = tag - obj->filemem;
 	obj->table[obj->parsed_strings].data.seek = data - obj->filemem;
-	obj->table[obj->parsed_strings].number = (size_t) obj->parsed_strings;
+	obj->table[obj->parsed_strings].length = strlen(data);
 	obj->parsed_strings++;
 	if ((size_t) obj->parsed_strings >= obj->tablesize - 1) { // can't be -1 in this scope. Typecast is needed only for removing compiler warning
 		obj->tablesize *= 2;
@@ -236,6 +236,10 @@ void hslice_parse(hslice_obj *obj, const char *prefix, const char *suffix) {
 	if (parser_preparations(obj, &parser_req) == false) return; // goto Error not needed, because parser_req.prefix_and_suffix should not be free()'d
 	if (parse(obj, &parser_req) == false) goto Error;
 	obj->filemem = realloc(obj->filemem, obj->fmemsize); // Memory usage has been reduced because of memmove()'s. So, I suppose we should not care about return value too much
+	if (obj->filemem == NULL) {
+		fprintf(stderr, "%s\n", "Huge shit happens. ENOMEM? Exiting...\n");
+		exit(EXIT_FAILURE); // that's only 1 place where we gonna exit instead of return error. If your system can't realloc even this - u're in big trouble
+	}
 	modify_seeks_to_pointers(obj);
 	if (prepare_tags(obj) == false) goto Error; // FALLUS IN FRONTALUS — MORTE MOMENTALUS
 	qsort(obj->table, (size_t) obj->parsed_strings, sizeof(tag_and_data), comparator);

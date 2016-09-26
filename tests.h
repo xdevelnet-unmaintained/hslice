@@ -5,11 +5,11 @@
 #include <stdbool.h>
 #include "libhslice.h"
 
-// This test covers only defined behavior. Any kind of weird errors like ENOMEM aren't tested. Sorry about that.
+// This test covers only defined behavior. Any kind of weird errors like ENOMEM aren't tested. Sorry about that (no).
 
 char fname[] = "hslice_test_XXXXXX"; // do not apply const keyword. XXXXXX will be changed during mkstemp();
 
-static void xxx_me_please(char *filename_template) {
+static void xxx_me_please(char *filename_template) { // should be used to set last 6 characters to XXXXXX
 	const size_t xxx_length = 6; // read man mkstemp
 	size_t length = strlen(filename_template);
 	if (length < xxx_length) {

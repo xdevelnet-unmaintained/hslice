@@ -119,13 +119,27 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 	Note: This function exists in a reference library for the reason that there are no associative arrays in the C programming language.
 
-6) Stringsafe collection
+6) Stringsafe data selecting
 
 	char *hslice_return_e(hslice_obj *obj, char *search);
 
-	Similarly with hslice_return, but in the absence of the search results, it returns an empty line.
+	Similarly with hslice_return(), but in the absence of the search results, it returns an empty line.
 
-7) List of tags
+7) Full data selecting
+
+	tag_and_data *hslice_return_full(hslice_obj *obj, char *search);
+
+	Similary with hslice_return(), but returns structure instead of string. Structure consists of tag string, value string, byte size of value string.
+
+	Structure prototype:
+
+	typedef struct {
+		size_t length;
+		char *tag;
+		char *data;
+	} tag_and_data;
+
+8) List of tags
 
 	char **hslice_tags(hslice_onj *obj);
 
@@ -189,7 +203,7 @@ The format involves placing dividers (delimiters) between the desired areas of t
 			if (argc > 2) a = hslice_open(argv[1]);
 			if (hslice_count(a) < 0) return EXIT_FAILURE;
 			hslice_parse(a);
-			count = hslice_count(a, "");
+			count = hslice_count(a);
 			if (count == 0) {
 				fprintf(stderr, "No data recieved\n");
 				return EXIT_SUCCESS;
@@ -213,5 +227,6 @@ Standard:
 
 Reference implementation:
 
-	1) The reference implementation is designed to correctly perform the task, to process the HSLICE format in the list of lines and to give the ability to produce a collection of these lines. Performance, memory consumption, and other optimizations are not goals of the reference implementation.
-	2) The reference implementation can be safely used in situations where a relatively large spent memory and time is valid for data preparation and collection. In cases where an access to the desired storage is needed to faster, collection results should be stored in the pointer and then to use it.
+	1) The reference implementation is designed to correctly perform the task, to process the HSLICE format in the list of lines and to give the ability to produce a collection of these lines. Performance, memory consumption, and other optimizations are not goals of the reference implementation;
+	2) The reference implementation can be safely used in situations where a relatively large spent memory and time is valid for data preparation and collection. In cases where an access to the desired storage is needed to faster, collection results should be stored in the pointer and then to use it;
+	3) Structure prototype tag_and_data uses "union" instead of "char *" for real, which constst of "size_t" and "char *" types.
