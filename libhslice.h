@@ -273,6 +273,22 @@ const char *hslice_return_e(hslice_obj *obj, char *search) {
 	return retval;
 }
 
+tag_and_data *hslice_return_full(hslice_obj *obj, char *search) { // HOW TO AVOID FKING COPYPASTING?! OH NO
+	if (obj->parsed_strings < 1) return NULL;
+	int position;
+	int begin = 0;
+	int end = (int) obj->parsed_strings - 1;
+	int cond = 0;
+
+	while (begin <= end) { // https://github.com/xdevelnet/weirdness/blob/master/string_sort_and_binary_search.c?ts=4#L27
+		position = (begin + end) / 2;
+		if ((cond = strcasecmp(obj->table[position].tag.ptr, search)) == 0) return &(obj->table[position]);
+		else if (cond < 0) begin = position + 1;
+		else end = position - 1;
+	}
+	return NULL;
+}
+
 void hslice_close(hslice_obj *obj) {
 	free(obj->filemem), free(obj->table), free(obj->tags); // AHAHAHAH, DID YOU GET IT?!
 }

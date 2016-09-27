@@ -198,6 +198,36 @@ bool hslice_return_test() {
 	return test_result;
 }
 
+bool hslice_return_full_test() {
+	const char testdata[] = "What da heck{q_W}is dat{q_e}";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{q_", "}");
+
+	bool test_result = true;
+
+	struct {
+		size_t datalength;
+		char *tag;
+		char *data;
+	} anon;
+
+	anon.data = test_object.filemem + 0;
+	anon.tag = test_object.filemem + 13;
+	anon.datalength = 12;
+	if (memcmp(&anon, hslice_return_full(&test_object, "W"), sizeof(anon)) != 0) test_result = false;
+
+	anon.data = test_object.filemem + 15;
+	anon.tag = test_object.filemem + 22;
+	anon.datalength = 6;
+	if (memcmp(&anon, hslice_return_full(&test_object, "e"), sizeof(anon)) != 0) test_result = false;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
 bool perform_test(char *test_name, bool(testfunc)()) {
 	static bool test_result = false;
 	if (test_name == NULL) return test_result;
