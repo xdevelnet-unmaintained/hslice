@@ -252,8 +252,8 @@ void run_tests() {
 		if (!perform_test("hslice_parse (moved mem)", hslice_parse_moved_mem_test)) break;
 		if (!perform_test("hslice_parse (sorted tags)", hslice_parse_sorted_test)) break;
 		if (!perform_test("hslice_tags_test", hslice_tags_test)) break;
-		if (!perform_test("hslice_return", hslice_return_test)) break;
 		if (!perform_test("hslice_return_full_test", hslice_return_full_test)) break;
+		if (!perform_test("hslice_return", hslice_return_test)) break;
 	} while (0);
 	if (perform_test(NULL, NULL) == true) exit(EXIT_SUCCESS); // get last test result
 	exit(EXIT_FAILURE);

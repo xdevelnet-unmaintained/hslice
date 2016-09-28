@@ -251,29 +251,7 @@ int hslice_count(hslice_obj *obj) {
 	return (int) obj->parsed_strings; // TODO: should I just change type in structure to regular integer? I'll think about it later
 }
 
-const char *hslice_return(hslice_obj *obj, const char *search) { // const because idiot_protection_system = ON
-	if (obj->parsed_strings < 1) return NULL;
-	int position;
-	int begin = 0;
-	int end = (int) obj->parsed_strings - 1;
-	int cond = 0;
-
-	while (begin <= end) { // https://github.com/xdevelnet/weirdness/blob/master/string_sort_and_binary_search.c?ts=4#L27
-		position = (begin + end) / 2;
-		if ((cond = strcasecmp(obj->table[position].tag.ptr, search)) == 0) return obj->table[position].data.ptr;
-		else if (cond < 0) begin = position + 1;
-		else end = position - 1;
-	}
-	return NULL;
-}
-
-const char *hslice_return_e(hslice_obj *obj, char *search) {
-	const char *retval = hslice_return(obj, search);
-	if (retval == NULL) return empty_string;
-	return retval;
-}
-
-tag_and_data *hslice_return_full(hslice_obj *obj, char *search) { // HOW TO AVOID FKING COPYPASTING?! OH NO
+tag_and_data *hslice_return_full(hslice_obj *obj, const char *search) {
 	if (obj->parsed_strings < 1) return NULL;
 	int position;
 	int begin = 0;
@@ -287,6 +265,18 @@ tag_and_data *hslice_return_full(hslice_obj *obj, char *search) { // HOW TO AVOI
 		else end = position - 1;
 	}
 	return NULL;
+}
+
+const char *hslice_return(hslice_obj *obj, const char *search) { // const because idiot_protection_system = ON
+	tag_and_data *ret = hslice_return_full(obj, search);
+	if (ret == NULL) return NULL;
+	return hslice_return_full(obj, search)->data.ptr;
+}
+
+const char *hslice_return_e(hslice_obj *obj, char *search) {
+	const char *retval = hslice_return(obj, search);
+	if (retval == NULL) return empty_string;
+	return retval;
 }
 
 void hslice_close(hslice_obj *obj) {
