@@ -48,16 +48,6 @@ bool hslice_open_test() {
 	return return_value;
 }
 
-bool is_behind_exist_test() {
-	const char *test_str = "SAMEP ON THE ROAD BEHIN"; // Do not ask me about contents of this string. There is absolutely NO SENSE.
-	if (is_behind_exist(test_str + 6, "EP ", test_str) and is_behind_exist(test_str + 6, "MEP ", test_str) and
-		is_behind_exist(test_str + 6, "AMEP ", test_str) and is_behind_exist(test_str + 6, "SAMEP ", test_str) and
-		!is_behind_exist(test_str + 6, "SAMEP ", test_str + 1) and is_behind_exist(test_str + 6, " ", test_str) )
-		// TODO: I should write specified test cases and explain all of them in code instead of "Let's test random shit!"
-		return true;
-	return false;
-}
-
 bool ftag_test() {
 	if (ftag("ABCDEFG", "EF", 2) != NULL and ftag("{WHAT_TAG_HERE_SA}" + 6, "_SA}", 4) != NULL and ftag("{TEST_TAG}" + 5, "}", 1) != NULL
 		and ftag("JHD REAL EA" + 4, " EA", 3) != NULL) return true;
@@ -144,7 +134,7 @@ bool hslice_tags_test() {
 	if (check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "bfg") == true and
 		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "lf") == true and
 		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "lmnt") == true and
-		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "nnn") == true and
+		check_string_existance(hslice_tags(&test_object), (size_t) test_object.parsed_strings, "nnn") == true and
 		check_string_existance(test_object.tags, (size_t) test_object.parsed_strings, "AoE") == true) retval = true;
 	hslice_close(&test_object);
 
@@ -228,6 +218,56 @@ bool hslice_return_full_test() {
 	return test_result;
 }
 
+bool empty_test() {
+	const char testdata[] = "AAAAAAAAAAAAAAAAAAAAABBBBBBBBBBCCC";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{Zaaaasdasda_", "jaja}");
+
+	bool test_result = false;
+
+	if (memcmp(testdata, test_object.filemem, sizeof(testdata) - 1) == 0 and hslice_tags(&test_object)[0] == NULL) test_result = true;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
+bool ignorance_test() {
+	const char testdata[] = "UNROLL THE TADPOLE OS UNCLOG {Z_}{Z_AA} THE FROG{Z_AA} OS UNLOAD THE TOAD";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{Z_", "}");
+
+	bool test_result = false;
+
+	if (strcmp(hslice_return(&test_object, "AA"), "UNROLL THE TADPOLE OS UNCLOG {Z_AA} THE FROG") == 0) test_result = true;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
+bool empty_occurrence_test() {
+	const char testdata[] = "{Z_A}PONTZ{Z_B}{Z_C}DDDD";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{Z_", "}");
+
+	bool test_result = false;
+
+	if (strcmp(hslice_return(&test_object, "B"), "PONTZ") == 0 and
+		*hslice_return(&test_object, "A") == '\0' and
+		*hslice_return(&test_object, "C") == '\0') test_result = true;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
 bool perform_test(char *test_name, bool(testfunc)()) {
 	static bool test_result = false;
 	if (test_name == NULL) return test_result;
@@ -244,7 +284,6 @@ bool perform_test(char *test_name, bool(testfunc)()) {
 void run_tests() {
 	do { // we should NOT execute further tests if one of them fails
 		if (!perform_test("hslice_open", hslice_open_test)) break;
-		if (!perform_test("is_behind_exist", is_behind_exist_test)) break;
 		if (!perform_test("ftag", ftag_test)) break;
 		if (!perform_test("hslice_count", hslice_count_test)) break;
 		if (!perform_test("modify_seeks_to_pointers", modify_seeks_to_pointers_test)) break;
@@ -253,7 +292,10 @@ void run_tests() {
 		if (!perform_test("hslice_parse (sorted tags)", hslice_parse_sorted_test)) break;
 		if (!perform_test("hslice_tags_test", hslice_tags_test)) break;
 		if (!perform_test("hslice_return_full_test", hslice_return_full_test)) break;
-		if (!perform_test("hslice_return", hslice_return_test)) break;
+		if (!perform_test("hslice_return test", hslice_return_test)) break;
+		if (!perform_test("empty test", empty_test)) break;
+		if (!perform_test("ignorance test", ignorance_test)) break;
+		if (!perform_test("empty occurrence test", empty_occurrence_test)) break;
 	} while (0);
 	if (perform_test(NULL, NULL) == true) exit(EXIT_SUCCESS); // get last test result
 	exit(EXIT_FAILURE);

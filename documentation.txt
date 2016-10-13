@@ -48,6 +48,11 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 	MAINSTRING in this case returns "the roll the troll".
 
+	- Sometimes we need to ignoring part of some text as a delimiter. Therefore, we should escape it with prefix+suffix sequence.
+
+	For example:
+
+		UNROLL THE TADPOLE OS UNCLOG {Z_}{Z_AA} THE FROG OS UNLOAD THE TOAD
 
  ##########################################################
  #     HSLICE STANDARD DESCRIPTION IN PSEUDOLANGUAGE      #

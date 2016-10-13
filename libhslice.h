@@ -83,14 +83,6 @@ hslice_obj hslice_open(char *filename) { // TODO: Rewrite it using only POSIX li
 	return obj;
 }
 
-bool is_behind_exist(const char *point, const char *text_behind, const char *edge) { // check if specified text exist behind pointer, but not behind edge
-	size_t behind_length = strlen(text_behind);
-	point -= behind_length;
-	if (point < edge) return 0;
-	if (strncmp(point, text_behind, behind_length) == 0) return true;
-	return false;
-}
-
 char *ftag(char *ptr, const char *suffix, size_t suffixlen) { // we gonna check tag existence. If it exist - return pointer to suffix, otherwise - NULL.
 	char current_char = *ptr;
 	while (isalpha(current_char) != 0 or current_char == '_') { // so, tag may be only alphabetic character or underscore. Otherwise, carry on
@@ -162,20 +154,25 @@ bool parser_preparations(hslice_obj *obj, parser_internal *parser_req) { // http
 	return true;
 }
 
+static bool validate(parser_internal *parser_req, char *ptr) {
+	if (strncmp(parser_req->prefix, ptr, parser_req->prefixlen) == 0) return true;
+	return false;
+}
+
 bool parse(hslice_obj *obj, parser_internal *parser_req) { // parse it, goddamnit!
-	char *data_ptr;
+	char *data_ptr = obj->filemem;
 	char *tag_ptr;
 
 	char *flying_ptr = obj->filemem; // this pointer will "fly" over file contents
 	char *flying_suffix_after_tag;
 
 	while (forever) {
-		data_ptr = flying_ptr;
 		flying_ptr = strstr(flying_ptr, parser_req->prefix); // find next occurrence of prefix
-		if (flying_ptr == NULL) break; // nothing more found (we found null byte?)
-		if (is_behind_exist(flying_ptr, parser_req->prefix_and_suffix, obj->filemem) or
-			strncmp(flying_ptr, parser_req->prefix_and_suffix, parser_req->prefixlen + parser_req->suffixlen) == 0) {
-			// what if we found prefix+suffix or behind is prefix+suffix? It means that we should't proceed with found entry and skip it
+		if (flying_ptr == NULL) break; // nothing more found (we found null byte?) --> stopping
+		if (strncmp(flying_ptr, parser_req->prefix_and_suffix, parser_req->prefixlen + parser_req->suffixlen) == 0 and
+			validate(parser_req, flying_ptr + parser_req->prefixlen + parser_req->suffixlen) == true) {
+			// prefix+suffix behind other valid delimiter
+			memmove(flying_ptr, flying_ptr + parser_req->prefixlen + parser_req->suffixlen, obj->filemem + obj->fmemsize - (flying_ptr + parser_req->prefixlen + parser_req->suffixlen));
 			flying_ptr += parser_req->prefixlen;
 			continue;
 		}
@@ -202,6 +199,7 @@ bool parse(hslice_obj *obj, parser_internal *parser_req) { // parse it, goddamni
 		*flying_suffix_after_tag = '\0';
 		flying_ptr = flying_suffix_after_tag + 1;
 		if (add_to_table(obj, tag_ptr, data_ptr) == false) return false;
+		data_ptr = flying_ptr;
 	}
 	return true;
 };
@@ -211,11 +209,6 @@ static int comparator(const void *p1, const void *p2) { // proudly copypasted, b
 }
 
 bool prepare_tags(hslice_obj *obj) {
-	static char *nothing = NULL;
-	if (obj->parsed_strings  == 0) {
-		obj->tags = &nothing;
-		return true;
-	}
 	obj->tags = calloc((size_t ) obj->parsed_strings + 1, sizeof(void *));
 	if (obj->tags == NULL) {
 		fprintf(stderr, "%s\n", "Failed to allocate memory for tag list.");
@@ -277,6 +270,10 @@ const char *hslice_return_e(hslice_obj *obj, char *search) {
 	const char *retval = hslice_return(obj, search);
 	if (retval == NULL) return empty_string;
 	return retval;
+}
+
+char **hslice_tags(hslice_obj *obj) {
+	return obj->tags;
 }
 
 void hslice_close(hslice_obj *obj) {
