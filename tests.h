@@ -272,7 +272,7 @@ bool perform_test(char *test_name, bool(testfunc)()) {
 	static bool test_result = false;
 	if (test_name == NULL) return test_result;
 	static size_t test_number = 0;
-	printf("Test #%lu: %s - ", ++test_number, test_name);
+	printf("Test #%3.0lu: %30.30s - ", ++test_number, test_name);
 	fflush(stdout);
 	static const char *test_result_str = "Passed.";
 	test_result = testfunc();
