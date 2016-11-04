@@ -268,6 +268,56 @@ bool empty_occurrence_test() {
 	return test_result;
 }
 
+bool null_tag_test() {
+	const char testdata[] = "mmm{Z_A}vvv{Z_NULL}{Z_NULL}{Z_NULL}{Z_NULL}POTNZ{Z_NULL}f{Z_C}a";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{Z_", "}");
+	bool test_result = false;
+
+	if (strcmp(hslice_return(&test_object, "A"), "mmm") == 0 and
+		strcmp(hslice_return(&test_object, "C"), "f") == 0) test_result = true;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
+bool skip_noskip_tag_test() {
+	const char testdata[] = "mmm{Z_A}vvv{Z_SKIP}DUSAIDISAHDIUSAHD{Z_NOSKIP}f{Z_C}azzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{Z_", "}");
+	bool test_result = false;
+
+	if (strcmp(hslice_return(&test_object, "A"), "mmm") == 0 and
+		strcmp(hslice_return(&test_object, "C"), "vvvf") == 0) test_result = true;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
+bool test_everything() {
+	const char testdata[] = "{Z_A}vvv{Z_B}wwwwwwww{Z_SKIP}DUSAIDISAHDIUSAHD{Z_NOSKIP}f{Z_CAC}m{Z_SKIP}vvvvv{Z_NOSKIP}{Z_FCNTL}EMACS{Z_SKIP}d";
+	prepare_file_with_data(fname, testdata, sizeof(testdata) - 1);
+	hslice_obj test_object = hslice_open(fname);
+	hslice_parse(&test_object, "{Z_", "}");
+	bool test_result = false;
+
+	if (strcmp(hslice_return(&test_object, "A"), "") == 0 and
+		strcmp(hslice_return(&test_object, "B"), "vvv") == 0 and
+		strcmp(hslice_return(&test_object, "CAC"), "wwwwwwwwf") == 0 and
+		strcmp(hslice_return(&test_object, "FCNTL"), "m") == 0) test_result = true;
+
+	hslice_close(&test_object);
+	remove(fname);
+	xxx_me_please(fname);
+	return test_result;
+}
+
 bool perform_test(char *test_name, bool(testfunc)()) {
 	static bool test_result = false;
 	if (test_name == NULL) return test_result;
@@ -296,6 +346,9 @@ void run_tests() {
 		if (!perform_test("empty test", empty_test)) break;
 		if (!perform_test("ignorance test", ignorance_test)) break;
 		if (!perform_test("empty occurrence test", empty_occurrence_test)) break;
+		if (!perform_test("null tag test", null_tag_test)) break;
+		if (!perform_test("skip-noskip tag test", skip_noskip_tag_test)) break;
+		if (!perform_test("test everything", test_everything)) break;
 	} while (0);
 	if (perform_test(NULL, NULL) == true) exit(EXIT_SUCCESS); // get last test result
 	exit(EXIT_FAILURE);

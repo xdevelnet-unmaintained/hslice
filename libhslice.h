@@ -38,6 +38,7 @@ typedef struct {
 	size_t prefixlen;
 	size_t suffixlen;
 	char *prefix_and_suffix;
+	char *prefix_noskip_suffix;
 } parser_internal;
 
 static void erase_hslice_obj_ptrs(hslice_obj *obj) { // because we'll perform free() at hslice_close(); Using free(NULL) is safe.
@@ -47,6 +48,9 @@ static void erase_hslice_obj_ptrs(hslice_obj *obj) { // because we'll perform fr
 }
 
 const char empty_string[] = "";
+const char nullword[] = "NULL";
+const char skipword[] = "SKIP";
+const char noskipword[] = "NOSKIP";
 
 hslice_obj hslice_open(char *filename) { // TODO: Rewrite it using only POSIX library instead of regular C file handling. This library is not designed to run under WIN
 	hslice_obj obj;
@@ -120,7 +124,7 @@ void modify_seeks_to_pointers(hslice_obj *obj) {
 }
 
 bool parser_preparations(hslice_obj *obj, parser_internal *parser_req) { // http://xdevelnet.org/u/656.png
-	if (obj == NULL) return NULL; // idiot protection
+	if (obj == NULL) return NULL; // idiot protection // UPD: Should I protect myself from being an idiot?
 	if (parser_req->prefix == NULL or parser_req->suffix == NULL) {
 		obj->parsed_strings = -1;
 		return false;
@@ -151,12 +155,81 @@ bool parser_preparations(hslice_obj *obj, parser_internal *parser_req) { // http
 	}
 	obj->tablesize = BASE_STRINGS_COUNT; // base size. Will be expanded if needed during parsing at add_to_table()
 	obj->parsed_strings = 0;
+
+	parser_req->prefix_noskip_suffix = calloc(parser_req->prefixlen + parser_req->suffixlen + sizeof(noskipword), sizeof(char));
+	if (parser_req->prefix_noskip_suffix == NULL) {
+		fprintf(stderr, "%s\n", "Memory allocation failed.");
+		obj->parsed_strings = -1;
+		free(parser_req->prefix_and_suffix);
+		free(obj->table);
+		return false;
+	}
+	strcpy(parser_req->prefix_noskip_suffix, parser_req->prefix);
+	strcat(parser_req->prefix_noskip_suffix, noskipword);
+	strcat(parser_req->prefix_noskip_suffix, parser_req->suffix);
 	return true;
 }
 
 static bool validate(parser_internal *parser_req, char *ptr) {
 	if (strncmp(parser_req->prefix, ptr, parser_req->prefixlen) == 0) return true;
 	return false;
+}
+
+bool throw_away_if_tag_is_NULL(hslice_obj *obj, char *ptr, parser_internal *parser_req, char *rollover) { // this procedure will check if tag equals NULL (check doc for details)
+	if (strncmp(ptr, parser_req->prefix, parser_req->prefixlen) == 0 and
+		strncmp(ptr + parser_req->prefixlen, nullword, sizeof(nullword) - 1) == 0 and
+		strncmp(ptr + parser_req->prefixlen + sizeof(nullword) - 1, parser_req->suffix, parser_req->suffixlen) == 0) {
+		// datadatadata otherdataotherdata{pref_NULL}usefuldatausefuldata
+		//             ^^                 ^          ^
+		//            / |                 |          |
+		//           /  |                 |          |
+		//          /   |                 |          |
+		//        '0'  rollover          ptr      movepoint
+		//
+		char *movepoint = ptr + parser_req->prefixlen + sizeof(nullword) - 1 + parser_req->suffixlen;
+		size_t len = obj->filemem + obj->fmemsize - movepoint;
+		size_t distance = movepoint - rollover;
+		if (len < distance) *(rollover + len) = '\0'; // when memmoving small chunk of data close to EOF
+		obj->fmemsize -= distance;
+		memmove(rollover, movepoint, len); // last arg is size from movepoint to end of memory
+		return true;
+	}
+	return false;
+}
+
+signed int cut_away_if_tag_is_SKIP(hslice_obj *obj, char *ptr, parser_internal *parser_req) {
+//  return values explanation:
+//  1 means that we found skip-noskip pair and done what's needed;
+// -1 means, that no more parsing required;
+//  0 means, that current tag isn't SKIP
+	if (strncmp(ptr, parser_req->prefix, parser_req->prefixlen) == 0 and
+		strncmp(ptr + parser_req->prefixlen, skipword, sizeof(skipword) - 1) == 0 and
+		strncmp(ptr + parser_req->prefixlen + sizeof(skipword) - 1, parser_req->suffix, parser_req->suffixlen) == 0) {
+		char *movepoint = strstr(ptr + parser_req->prefixlen + parser_req->suffixlen + sizeof(noskipword) - 1, parser_req->prefix_noskip_suffix);
+		// still not movepoint, just separator with NOSKIP tag
+
+		if (movepoint == NULL or movepoint >= obj->filemem + obj->fmemsize) { // we should not parse behind end. Actually, second check can
+			// be omitted because of adding null separator at end of this function body. Well, whatever, more safety == better.
+			obj->fmemsize -= obj->filemem + obj->fmemsize - ptr;
+			return -1;
+		}
+		movepoint += parser_req->prefixlen + sizeof(noskipword) - 1 + parser_req->suffixlen; // now it's really movepoint
+		// datadatadata{pref_SKIP}otherdataotherdata{pref_NOSKIP}anotherdata
+		//             ^                                         ^
+		//             |                                         |
+		//             |                                         |
+		//             |                                         |
+		//            ptr                                    movepoint
+		//
+		size_t len = obj->filemem + obj->fmemsize - movepoint;
+		size_t distance = movepoint - ptr;
+		if (len < distance) *(ptr + len) = '\0';
+		obj->fmemsize -= distance;
+		memmove(ptr, movepoint, len);
+		*(ptr+len) = '\0'; // we should not parse behind end
+		return 1;
+	}
+	return 0;
 }
 
 bool parse(hslice_obj *obj, parser_internal *parser_req) { // parse it, goddamnit!
@@ -167,8 +240,19 @@ bool parse(hslice_obj *obj, parser_internal *parser_req) { // parse it, goddamni
 	char *flying_suffix_after_tag;
 
 	while (forever) {
+		search_again:
 		flying_ptr = strstr(flying_ptr, parser_req->prefix); // find next occurrence of prefix
 		if (flying_ptr == NULL) break; // nothing more found (we found null byte?) --> stopping
+		if (throw_away_if_tag_is_NULL(obj, flying_ptr, parser_req, data_ptr) == true) {
+			flying_ptr = data_ptr;
+			goto search_again;
+		}
+		signed int skip_noskip_retval = cut_away_if_tag_is_SKIP(obj, flying_ptr, parser_req);
+		if (skip_noskip_retval == -1) break;
+		if (skip_noskip_retval == 1) {
+			flying_ptr = data_ptr;
+			goto search_again;
+		}
 		if (strncmp(flying_ptr, parser_req->prefix_and_suffix, parser_req->prefixlen + parser_req->suffixlen) == 0 and
 			validate(parser_req, flying_ptr + parser_req->prefixlen + parser_req->suffixlen) == true) {
 			// prefix+suffix behind other valid delimiter
@@ -195,7 +279,7 @@ bool parse(hslice_obj *obj, parser_internal *parser_req) { // parse it, goddamni
 					obj->fmemsize - (flying_suffix_after_tag + parser_req->suffixlen));
 			obj->fmemsize -= parser_req->suffixlen - 1;
 		}
-		tag_ptr = flying_ptr + 1;
+		tag_ptr = flying_ptr + 1; //printf("\nflying suffix after tag: %c", *flying_suffix_after_tag);
 		*flying_suffix_after_tag = '\0';
 		flying_ptr = flying_suffix_after_tag + 1;
 		if (add_to_table(obj, tag_ptr, data_ptr) == false) return false;
@@ -238,6 +322,7 @@ void hslice_parse(hslice_obj *obj, const char *prefix, const char *suffix) {
 	qsort(obj->table, (size_t) obj->parsed_strings, sizeof(tag_and_data), comparator);
 	Error:
 	free(parser_req.prefix_and_suffix); // prefix and suffix aren't needed anymore
+	free(parser_req.prefix_noskip_suffix);
 }
 
 int hslice_count(hslice_obj *obj) {

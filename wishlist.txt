@@ -8,11 +8,11 @@ I. More tests:
 
 II. Functional
 
-1) Library real functional should correspond declared functional in documentation
+1) Library real functional should correspond declared functional in documentation -- done... finally.
 2) Shared object compiling options
 3) Shared object interface options
 4) Add examples
-5) Implement length feature
+5) Implement length feature -- done
 
 III. Important, but not technical
 
