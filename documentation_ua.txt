@@ -119,7 +119,7 @@ HSLICE передбачає формат даних і еталонну бібл
 
 5) Вибірка
 
-	char *hslice_return(hslice_obj *obj, char *search);
+	const char *hslice_return(hslice_obj *obj, const char *search);
 
 	Функція шукає в списку, отриманому після обробки obj, рядок з тегом search і повертає її. У разі відсутності результатів пошуку, повертається NULL.
 
@@ -127,13 +127,13 @@ HSLICE передбачає формат даних і еталонну бібл
 
 6) Рядкобезпечна вибірка
 
-	char *hslice_return_e(hslice_obj *obj, char *search);
+	const char *hslice_return_e(hslice_obj *obj, char *search);
 
 	Аналогічно з hslice_return(), але в разі відсутності результатів пошуку, повертається порожній рядок.
 
 7) Повна вибірка
 
-	tag_and_data *hslice_return_full(hslice_obj *obj, char *search);
+	tag_aznd_data *hslice_return_full(hslice_obj *obj, char *search);
 
 	Аналогічно з hslice_return(), але повертає структуру замість рядка. Структура містить рядок-тег, рядок-значення, розмір рядка-значення у байтах.
 
@@ -147,7 +147,7 @@ HSLICE передбачає формат даних і еталонну бібл
 
 7) Список тегів
 
-	char **hslice_tags(hslice_onj *obj);
+	char **hslice_tags(hslice_obj *obj);
 
 	Функція повертає вказівник на масив вказівників, кожен елемент з якого вказує на всі знайдені унікальні теги після виконання hslice_parse(). Останній елемент масиву завжди вказує на NULL.
 
@@ -189,8 +189,9 @@ HSLICE передбачає формат даних і еталонну бібл
 
 		int main(int argc, char **argv) {
 			hslice_obj a = hslice_open("lorem.txt");;
-			hslice_parse(a, "{Z_", "}");
-			printf("%s %s", hslice_return(a, "O"), hslice_return(a, "V"));
+			hslice_parse(&a, "{Z_", "}");
+			printf("string from O tag: %s\nstring from V tag: %s\n", hslice_return(&a, "O"), hslice_return(&a, "V"));
+			hslice_close(&a);
 			return 0;
 		}
 

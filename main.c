@@ -1,6 +1,5 @@
 #define _BSD_SOURCE
 
-#include "libhslice.h"
 #include "tests.h"
 
 int main() {

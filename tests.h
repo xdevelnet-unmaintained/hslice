@@ -3,7 +3,7 @@
 
 #include <unistd.h>
 #include <stdbool.h>
-#include "libhslice.h"
+#include "libhslice.c"
 
 // This test covers only defined behavior. Any kind of weird errors like ENOMEM aren't tested. Sorry about that (no).
 
@@ -331,7 +331,7 @@ bool perform_test(char *test_name, bool(testfunc)()) {
 	return test_result;
 }
 
-void run_tests() {
+void run_tests() { printf("%zu, %zu\n", sizeof(hslice_obj), sizeof(tag_and_data)); fflush(stdout);
 	do { // we should NOT execute further tests if one of them fails
 		if (!perform_test("hslice_open", hslice_open_test)) break;
 		if (!perform_test("ftag", ftag_test)) break;

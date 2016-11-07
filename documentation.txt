@@ -118,7 +118,7 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 5) Selecting data
 
-	char *hslice_return(hslice_obj *obj, char *search);
+	const char *hslice_return(hslice_obj *obj, const char *search);
 
 	The function searches in the list, obtained after obj processing, the line with search tag and returns it. If there are no search results, NULL returns.
 
@@ -126,7 +126,7 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 6) Stringsafe data selecting
 
-	char *hslice_return_e(hslice_obj *obj, char *search);
+	const char *hslice_return_e(hslice_obj *obj, char *search);
 
 	Similarly with hslice_return(), but in the absence of the search results, it returns an empty line.
 
@@ -146,7 +146,7 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 8) List of tags
 
-	char **hslice_tags(hslice_onj *obj);
+	char **hslice_tags(hslice_obj *obj);
 
 	The function returns a pointer to an array of pointers, each element refers to all found unique tags after hslice_parse() performing. The last element of the array always points to NULL.
 
@@ -188,8 +188,9 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 		int main(int argc, char **argv) {
 			hslice_obj a = hslice_open("lorem.txt");;
-			hslice_parse(a, "{Z_", "}");
-			printf("%s %s", hslice_return(a, "O"), hslice_return(a, "V"));
+			hslice_parse(&a, "{Z_", "}");
+			printf("string from O tag: %s\nstring from V tag: %s\n", hslice_return(&a, "O"), hslice_return(&a, "V"));
+			hslice_close(&a);
 			return 0;
 		}
 

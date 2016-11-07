@@ -120,7 +120,7 @@ HSLICE предполагает формат данных и эталонную 
 
 5) Выборка
 
-	char *hslice_return(hslice_obj *obj, char *search);
+	const char *hslice_return(hslice_obj *obj, const char *search);
 
 	Функция ищет в списке, полученном после обработки obj, строку с тегом search и возвращает её. В случае отсутствия результатов поиска, возвращается NULL.
 
@@ -128,7 +128,7 @@ HSLICE предполагает формат данных и эталонную 
 
 6) Строкобезопасная выборка
 
-	char *hslice_return_e(hslice_obj *obj, char *search);
+	const char *hslice_return_e(hslice_obj *obj, char *search);
 
 	Аналогично с hslice_return(), но в случае отсутствия результатов поиска, возвращается пустая строка.
 
@@ -148,7 +148,7 @@ HSLICE предполагает формат данных и эталонную 
 
 8) Список тегов
 
-	char **hslice_tags(hslice_onj *obj);
+	char **hslice_tags(hslice_obj *obj);
 
 	Функция возвращает указатель на массив указателей, каждый элемент из которого указывает на все найденные уникальные теги после выполнения hslice_parse(). Последний элемент массива всегда указывает на NULL.
 
@@ -190,8 +190,9 @@ HSLICE предполагает формат данных и эталонную 
 
 		int main(int argc, char **argv) {
 			hslice_obj a = hslice_open("lorem.txt");;
-			hslice_parse(a, "{Z_", "}");
-			printf("%s %s", hslice_return(a, "O"), hslice_return(a, "V"));
+			hslice_parse(&a, "{Z_", "}");
+			printf("string from O tag: %s\nstring from V tag: %s\n", hslice_return(&a, "O"), hslice_return(&a, "V"));
+			hslice_close(&a);
 			return 0;
 		}
 
