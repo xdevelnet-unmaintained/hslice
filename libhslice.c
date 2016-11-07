@@ -71,6 +71,7 @@ hslice_obj hslice_open(char *filename) { // TODO: Rewrite it using only POSIX li
 		if (errno != 0) perror("Can't seek over the file"); else fprintf(stderr, "%s %s.\n", "Can't seek over the file", filename);
 		// using stdio functions are not guarantee that errno should be set appropriately
 		obj.parsed_strings = -1;
+		fclose(file);
 		return obj;
 	}
 	rewind(file);
@@ -80,9 +81,14 @@ hslice_obj hslice_open(char *filename) { // TODO: Rewrite it using only POSIX li
 	if (obj.filemem == NULL) {
 		fprintf(stderr, "%s\n", "Memory allocation failed.");
 		obj.parsed_strings = -1;
+		fclose(file);
 		return obj;
 	}
-	fread(obj.filemem, sizeof(char), obj.fmemsize, file); // flush whole memory with file content
+	if (fread(obj.filemem, sizeof(char), obj.fmemsize, file) < obj.fmemsize) { // flush whole memory with file content
+		obj.parsed_strings = -1;
+		fclose(file);
+		return obj;
+	} 
 	fclose(file);
 	return obj;
 }
