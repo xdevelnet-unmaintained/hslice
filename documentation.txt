@@ -94,27 +94,33 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 1) File opening and preparation for data reading.
 
-	hslice_obj hslice_open(const char *filename);
+	hslice_obj *hslice_open(const char *filename);
 
-	The function opens the file filename, puts its contents into the memory, and then closes the file. It returns hslice_obj structure type, which is an argument for the other library functions. If the value of the filename is equal to NULL, an empty structure returns.
+	The function opens the file filename, puts its contents into the memory, closes the file, then processes obtained data. Function returns pointer to hslice_obj structure type, which is an argument for the other library functions. If the value of the filename is equal to NULL or an error happens during execution, function return NULL pointer.
 
 2) Finishing work with data
 
 	void hslice_close(hslice_obj *obj);
 
-	The procedure frees the memory, allocated for the data, which is referred by the obj structure, and cleans it's fields. It is impossible to work with obj using the library functions after usage of this function.
+	The procedure frees the memory, allocated for the data, which is required to work with obj. It's impossible to work with obj using the library functions after usage of this function.
 
-3) Data processing
+3) On-place data processing
 
-	void hslice_parse(hslice_obj *obj, char *prefix, char *suffix);
+	hslice_obj *hslice_parse(void *mem, size_t size, const char *prefix, const char *suffix, short int flags);
 
-	The function processes the data from hslice_obj to a list of strings, and then sorts it for faster access.
+	The function processes the data from memory area, returns pointer to hslice_obj structure on succes, otherwise NULL. Depending on flags, given memory area will be (not) modified and/or (not) realloced.
+
+	flags description:
+
+	DO_NOT_MODIFY    Given memory area will not modified. Proceeded data will be recorded to new memory area. If this flag is used, DO_NOT_REALLOC is useless.
+
+	DO_NOT_REALLOC   Given memory area will not realloc()-ed.
 
 4) Counting data obtained
 
-	int hslice_count(hslice_obj *obj);
+	size_t hslice_count(hslice_obj *obj);
 
-	The function returns the number of lines after parse_hslice processing. If the processing hasn’t been made yet or processing attempt has failed (no access to the file, it is impossible to allocate the memory), -1 returns.
+	The function returns the number of lines after parse_hslice processing. If the processing hasn’t been made yet or processing attempt has failed (no access to the file, it is impossible to allocate the memory), 0 returns.
 
 5) Selecting data
 
@@ -126,7 +132,7 @@ The format involves placing dividers (delimiters) between the desired areas of t
 
 6) Stringsafe data selecting
 
-	const char *hslice_return_e(hslice_obj *obj, char *search);
+	const char *hslice_return_e(hslice_obj *obj, const char *search);
 
 	Similarly with hslice_return(), but in the absence of the search results, it returns an empty line.
 
